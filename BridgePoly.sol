@@ -5,14 +5,13 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "https://github.com/fx-portal/contracts/blob/main/contracts/tunnel/FxBaseChildTunnel.sol";
 
 interface IL2ERC721 is IERC721{
-    function mintWrappedNFT (address _to, uint256 tokenId) external;
-    function setTokenURI(uint256 tokenId, string calldata tokenURI) external;
+    function mintWrappedNFT (address _to, uint256 tokenId, string calldata tokenURI) external;
     function burnWrappedNFT (uint256 tokenId) external;
     // function ownerOf(uint256 tokenId);
 
 }
 
-contract BridgeEth is FxBaseChildTunnel, IERC721Receiver{
+contract BridgePoly is FxBaseChildTunnel, IERC721Receiver{
 
     address _fxChild = 0xCf73231F28B7331BBe3124B907840A94851f9f11; // Mumbai testnet
 
@@ -92,8 +91,7 @@ contract BridgeEth is FxBaseChildTunnel, IERC721Receiver{
 
         // mint counterpart NFT and set metadata URI
         IL2ERC721 L2NFT = IL2ERC721(L2Token);
-        L2NFT.mintWrappedNFT(to, tokenId);
-        L2NFT.setTokenURI(tokenId, tokenURI);
+        L2NFT.mintWrappedNFT(to, tokenId, tokenURI);
 
         emit DepositFinalized(L2Token, depositor, to, tokenId, tokenURI);
     }
