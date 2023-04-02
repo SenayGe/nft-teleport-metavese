@@ -4,16 +4,14 @@ pragma solidity ^0.8.9;
 
 
 
-// import "https://github.com/fx-portal/contracts/blob/main/contracts/examples/erc721-transfer/FxERC721RootTunnel.sol";
-
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "https://github.com/fx-portal/contracts/blob/main/contracts/tunnel/FxBaseRootTunnel.sol";
 
-interface IL1ERC721 is ERC721URIStorage{
-    function mint (address _to, string calldata _metadata ) external;
-    function transferToken (address _from, address _to, uint256 _tokenId) external;
+// interface IL1ERC721 is ERC721URIStorage{
+//     function mint (address _to, string calldata _metadata ) external;
+//     function transferToken (address _from, address _to, uint256 _tokenId) external;
     
-}
+// }
 
 contract BridgeEth is FxBaseRootTunnel, IERC721Receiver{
 
@@ -44,13 +42,9 @@ contract BridgeEth is FxBaseRootTunnel, IERC721Receiver{
         // MAP_TOKEN is message identifier
         bytes memory message = abi.encode(MAP_TOKEN, abi.encode(_originalToken, _destinationToken));
         _sendMessageToChild(message);
-
+        emit TokenMapped (_originalToken, _destinationToken);
     }
 
-      function setFxChildTunnel(address _fxChildTunnel) private override {
-        require(fxChildTunnel == address(0x0), "FxBaseRootTunnel: CHILD_TUNNEL_ALREADY_SET");
-        fxChildTunnel = _fxChildTunnel;
-    }
 
     function registerL2Bridge (address L2Bridge) public {
         setFxChildTunnel(L2Bridge);
@@ -73,13 +67,13 @@ contract BridgeEth is FxBaseRootTunnel, IERC721Receiver{
         require(L1ToL2Token[originalToken] != address(0x0), "BridgeEth: NO_MAPPING_OF_L2_TOKEN_FOUND");
 
         // transfer from depositor to this contract
-        IL1ERC721(originalToken).transferToken(
+        ERC721URIStorage(originalToken).safeTransferFrom(
             msg.sender, // depositor
             address(this), // bridge contract
             tokenId
         );
 
-        string memory _tokenURI = IL1ERC721(originalToken).tokenURI(tokenId);
+        string memory _tokenURI = ERC721URIStorage(originalToken).tokenURI(tokenId);
         bytes memory bridgeMessage = abi.encode(DEPOSIT, abi.encode(originalToken, msg.sender, user, tokenId, _tokenURI));
         _sendMessageToChild(bridgeMessage);
         emit NFTDeposited(originalToken, msg.sender, user, tokenId);
@@ -90,7 +84,7 @@ contract BridgeEth is FxBaseRootTunnel, IERC721Receiver{
     @notice processes withdraw message sent from L2 bridge contract when a wrapped -
         nft is burned on L2
     */
-    function _processWithdrawMessage(bytes memory data) internal override {
+    function _processMessageFromChild(bytes memory data) internal override {
         (address L1TokenAddress, address L2TokenAddress, address to, uint256 tokenId) = abi.decode(
             data,
             (address, address, address, uint256)
@@ -99,7 +93,7 @@ contract BridgeEth is FxBaseRootTunnel, IERC721Receiver{
         require(L1ToL2Token[L1TokenAddress] == L2TokenAddress, "BridgeEth: INVALID_MAPPING_ON_EXIT");
 
         // transfer token from bridge contract back to original owner
-        IL1ERC721(L1TokenAddress).safeTransferFrom(address(this), to, tokenId);
+        ERC721URIStorage(L1TokenAddress).safeTransferFrom(address(this), to, tokenId);
         // emit FxWithdrawERC721(rootToken, L2Token, to, tokenId);
     }
 
