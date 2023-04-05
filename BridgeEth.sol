@@ -7,11 +7,11 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "https://github.com/fx-portal/contracts/blob/main/contracts/tunnel/FxBaseRootTunnel.sol";
 
-// interface IL1ERC721 is ERC721URIStorage{
-//     function mint (address _to, string calldata _metadata ) external;
-//     function transferToken (address _from, address _to, uint256 _tokenId) external;
+interface IL1ERC721 is IERC721{
+    function mint (address _to, string calldata _metadata ) external;
+    function transferToken (address _from, address _to, uint256 _tokenId) external;
     
-// }
+}
 
 contract BridgeEth is FxBaseRootTunnel, IERC721Receiver{
 
@@ -67,13 +67,13 @@ contract BridgeEth is FxBaseRootTunnel, IERC721Receiver{
         require(L1ToL2Token[originalToken] != address(0x0), "BridgeEth: NO_MAPPING_OF_L2_TOKEN_FOUND");
 
         // transfer from depositor to this contract
-        ERC721URIStorage(originalToken).safeTransferFrom(
+        IERC721(originalToken).transferFrom(
             msg.sender, // depositor
             address(this), // bridge contract
             tokenId
         );
 
-        string memory _tokenURI = ERC721URIStorage(originalToken).tokenURI(tokenId);
+        string memory _tokenURI = IERC721(originalToken).tokenURI(tokenId);
         bytes memory bridgeMessage = abi.encode(DEPOSIT, abi.encode(originalToken, msg.sender, user, tokenId, _tokenURI));
         _sendMessageToChild(bridgeMessage);
         emit NFTDeposited(originalToken, msg.sender, user, tokenId);
